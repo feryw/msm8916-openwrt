@@ -86,6 +86,13 @@ jobs:
         DIFFCONFIG="diffconfig_${DEVICE}"
         [ -f "$DIFFCONFIG" ] && mv "$DIFFCONFIG" openwrt/.config
 
+    - name: Install and configure ccache
+      run: |
+        echo "/usr/lib/ccache" >> $GITHUB_PATH
+        echo "CCACHE_DIR=${{ github.workspace }}/openwrt/.ccache" >> $GITHUB_ENV
+        ccache -M 5G
+        ccache -s
+
     - name: Download package
       id: package
       run: |
