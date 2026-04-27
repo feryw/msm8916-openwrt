@@ -6,8 +6,11 @@ on:
       openwrt_branch:
         description: 'OpenWrt branch'
         required: true
-        default: 'main'
-        type: string
+        default: 'v25.12.2'
+        type: choice
+        options:
+          - main
+          - v25.12.2
       release_tag:
         description: 'Release tag (optional - if provided, creates a GitHub release)'
         required: false
