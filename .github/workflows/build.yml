@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       device:
-        description: 'Target device (all = build all devices)'
+        description: 'Target device'
         required: false
         type: choice
         default: all
@@ -12,6 +12,15 @@ on:
           - all
           - uz801
           - uf02
+      arch:
+        description: 'Device architecture'
+        required: false
+        type: choice
+        default: all
+        options:
+          - all
+          - armv8
+          - armv7
 
 env:
   UPLOAD_FIRMWARE: true
@@ -46,6 +55,7 @@ jobs:
       fail-fast: false
       matrix:
         device: ${{ fromJSON((inputs.device == 'all' || inputs.device == '') && '["uz801","uf02"]' || format('["{0}"]', inputs.device)) }}
+        arch: ${{ fromJSON((inputs.arch == 'all' || inputs.arch == '') && '["armv8","armv7"]' || format('["{0}"]', inputs.arch)) }}
 
     steps:
     - name: Checkout
@@ -85,7 +95,8 @@ jobs:
     - name: Load diffconfig
       run: |
         DEVICE="${{ matrix.device }}"
-        DIFFCONFIG="diffconfig_${DEVICE}"
+        ARCH="${{ matrix.arch }}"
+        DIFFCONFIG="diffconfig_${DEVICE}_${ARCH}"
         [ -f "$DIFFCONFIG" ] && mv "$DIFFCONFIG" immortalwrt/.config
 
     - name: Set up ccache
