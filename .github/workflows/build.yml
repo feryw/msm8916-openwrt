@@ -1,3 +1,4 @@
+---
 name: ImmortalWrt Builder
 
 on:
@@ -32,20 +33,20 @@ jobs:
     outputs:
       immortalwrt_version: ${{ steps.resolve.outputs.version }}
     steps:
-    - name: Resolve latest stable ImmortalWrt 25.12.x tag
-      id: resolve
-      run: |
-        VERSION=$(git ls-remote --refs --tags https://github.com/immortalwrt/immortalwrt \
-          | awk -F/ '{print $3}' \
-          | grep -E '^v25\.12\.[0-9]+(-rc[0-9]+)?$' \
-          | sort -V \
-          | tail -1)
-        if [ -z "$VERSION" ]; then
-          echo "ERROR: Could not resolve a stable ImmortalWrt 25.12.x version"
-          exit 1
-        fi
-        echo "Resolved ImmortalWrt version: $VERSION"
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
+      - name: Resolve latest stable ImmortalWrt 25.12.x tag
+        id: resolve
+        run: |
+          VERSION=$(git ls-remote --refs --tags https://github.com/immortalwrt/immortalwrt \
+            | awk -F/ '{print $3}' \
+            | grep -E '^v25\.12\.[0-9]+(-rc[0-9]+)?$' \
+            | sort -V \
+            | tail -1)
+          if [ -z "$VERSION" ]; then
+            echo "ERROR: Could not resolve a stable ImmortalWrt 25.12.x version"
+            exit 1
+          fi
+          echo "Resolved ImmortalWrt version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
   build:
     needs: resolve-version
@@ -58,101 +59,126 @@ jobs:
         arch: ${{ fromJSON((inputs.arch == 'all' || inputs.arch == '') && '["armv8","armv7"]' || format('["{0}"]', inputs.arch)) }}
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Initialization environment
-      env:
-        DEBIAN_FRONTEND: noninteractive
-      run: |
-        sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
-        sudo docker image prune --all --force
-        sudo -E apt-get -qq update
-        sudo -E ./devenv/dependencies.sh
-        sudo -E apt-get -qq autoremove --purge
-        sudo -E apt-get -qq clean
-        sudo timedatectl set-timezone "$TZ"
+      - name: Initialization environment
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+          sudo -E apt-get -qq update
+          sudo -E ./devenv/dependencies.sh
+          sudo -E apt-get -qq autoremove --purge
+          sudo -E apt-get -qq clean
+          sudo timedatectl set-timezone "$TZ"
 
-    - name: Clone ImmortalWrt source code
-      run: |
-        echo "Using ImmortalWrt ${{ needs.resolve-version.outputs.immortalwrt_version }}"
-        git clone --single-branch -b ${{ needs.resolve-version.outputs.immortalwrt_version }} --depth=1 https://github.com/immortalwrt/immortalwrt
+      - name: Clone ImmortalWrt source code
+        run: |
+          echo "Using ImmortalWrt ${{ needs.resolve-version.outputs.immortalwrt_version }}"
+          git clone --single-branch -b ${{ needs.resolve-version.outputs.immortalwrt_version }} --depth=1 https://github.com/immortalwrt/immortalwrt
 
-    - name: Load msm89xx target and packages
-      run: |
-        chmod +x apply_patches.sh
-        ./apply_patches.sh immortalwrt
-        mv msm89xx immortalwrt/target/linux/msm89xx
-        mv packages immortalwrt/package/msm8916
+      - name: Load msm89xx target and packages
+        run: |
+          chmod +x apply_patches.sh
+          ./apply_patches.sh immortalwrt
+          mv msm89xx immortalwrt/target/linux/msm89xx
+          mv packages immortalwrt/package/msm8916
 
-    - name: Update and install feeds
-      run: |
-        cd immortalwrt
-        rm -rf tmp
-        ./scripts/feeds update -a
-        ./scripts/feeds install -a
+      - name: Set up ccache
+        uses: hendrikmuhs/ccache-action@v1
+        with:
+          key: ccache-iwrt-${{ matrix.arch }}
+          restore-keys: |
+            ccache-iwrt-${{ matrix.arch }}-
 
-    - name: Load diffconfig
-      run: |
-        DEVICE="${{ matrix.device }}"
-        ARCH="${{ matrix.arch }}"
-        DIFFCONFIG="diffconfig_${DEVICE}_${ARCH}"
-        [ -f "$DIFFCONFIG" ] && mv "$DIFFCONFIG" immortalwrt/.config
+      - name: Cache immortalwrt dl (shared)
+        uses: actions/cache@v4
+        with:
+          path: |
+            immortalwrt/dl
+          key: iwrt-dl
+          restore-keys: |
+            iwrt-dl-
 
-    - name: Set up ccache
-      uses: hendrikmuhs/ccache-action@v1
-      with:
-        key: ${{ runner.os }}-ccache-iwrt
-        restore-keys: |
-          ${{ runner.os }}-ccache-iwrt-
+      - name: Cache build_dir + staging_dir
+        uses: actions/cache@v4
+        with:
+          path: |
+            immortalwrt/build_dir
+            immortalwrt/staging_dir
+          key: iwrt-build-${{ steps.resolve.outputs.version }}-${{ matrix.arch }}-${{ hashFiles('feeds.conf.default') }}
+          restore-keys: |
+            iwrt-build-${{ steps.resolve.outputs.version }}-${{ matrix.arch }}-
 
-    - name: Cache immortalwrt build
-      uses: actions/cache@v4
-      with:
-        path: |
-          immortalwrt/dl
-          immortalwrt/build_dir
-          immortalwrt/staging_dir
-        key: ${{ runner.os }}-iwrt
-        restore-keys: |
-          ${{ runner.os }}-iwrt-
+      - name: Cache tools + toolchain
+        uses: actions/cache@v4
+        with:
+          path: |
+            immortalwrt/tools
+            immortalwrt/toolchain*
+          key: iwrt-toolchain-${{ steps.resolve.outputs.version }}-${{ matrix.arch }}-${{ hashFiles('feeds.conf.default') }}
+          restore-keys: |
+            iwrt-toolchain-${{ steps.resolve.outputs.version }}-${{ matrix.arch }}-
 
-    - name: Download package
-      id: package
-      run: |
-        cd immortalwrt
-        make defconfig
-        make download -j8
-        find dl -size -1024c -exec rm -f {} \; || true
+      - name: Cache feeds
+        uses: actions/cache@v4
+        with:
+          path: |
+            immortalwrt/feeds
+          key: iwrt-feeds-${{ steps.resolve.outputs.version }}-${{ hashFiles('feeds.conf.default') }}
+          restore-keys: |
+            iwrt-feeds-${{ steps.resolve.outputs.version }}-
 
-    - name: Compile the firmware
-      id: compile
-      run: |
-        cd immortalwrt
-        echo -e "$(nproc) thread compile"
-        make tools/ccache/compile
-        make -j$(nproc) || make -j1 || make -j1 V=s
-        echo "status=success" >> $GITHUB_OUTPUT
-        echo "FILE_DATE=$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
+      - name: Update and install feeds
+        run: |
+          cd immortalwrt
+          rm -rf tmp
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
 
-    - name: Organize files
-      id: organize
-      if: env.UPLOAD_FIRMWARE == 'true' && !cancelled()
-      run: |
-        cd immortalwrt/bin/targets/*/*
-        rm -rf packages
-        echo "FIRMWARE=$PWD" >> $GITHUB_ENV
-        echo "status=success" >> $GITHUB_OUTPUT
+      - name: Load diffconfig
+        run: |
+          DIFFCONFIG="diffconfig_${{ matrix.device }}_${{ matrix.arch }}"
+          [ -f "$DIFFCONFIG" ] && mv "$DIFFCONFIG" immortalwrt/.config
 
-    - name: Upload firmware
-      uses: actions/upload-artifact@v4
-      if: steps.organize.outputs.status == 'success' && !cancelled()
-      with:
-        name: immortalwrt_firmware_${{ matrix.device }}_${{needs.resolve-version.outputs.immortalwrt_version}}_${{ env.FILE_DATE }}
-        path: |
-          ${{ env.FIRMWARE }}/immortalwrt-msm89xx-*-squashfs-gpt_both0.bin
-          ${{ env.FIRMWARE }}/immortalwrt-msm89xx-*-squashfs-boot.img
-          ${{ env.FIRMWARE }}/immortalwrt-msm89xx-*-squashfs-system.img
-          ${{ env.FIRMWARE }}/immortalwrt-msm89xx-*.manifest
-          ${{ env.FIRMWARE }}/immortalwrt-msm89xx-*-flash.sh
-          ${{ env.FIRMWARE }}/immortalwrt-msm89xx-*-firmware.zip
+      - name: Download package
+        id: package
+        run: |
+          cd immortalwrt
+          make defconfig
+          make download -j8
+          find dl -size -1024c -exec rm -f {} \; || true
+
+      - name: Compile the firmware
+        id: compile
+        run: |
+          cd immortalwrt
+          echo -e "$(nproc) thread compile"
+          make tools/ccache/compile
+          make -j$(nproc) || make -j1 || make -j1 V=s
+          echo "status=success" >> $GITHUB_OUTPUT
+          echo "FILE_DATE=$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
+
+      - name: Organize files
+        id: organize
+        if: env.UPLOAD_FIRMWARE == 'true' && !cancelled()
+        run: |
+          cd immortalwrt/bin/targets/*/*
+          rm -rf packages
+          echo "FIRMWARE=$PWD" >> $GITHUB_ENV
+          echo "status=success" >> $GITHUB_OUTPUT
+
+      - name: Upload firmware
+        uses: actions/upload-artifact@v4
+        if: steps.organize.outputs.status == 'success' && !cancelled()
+        with:
+          name: immortalwrt_firmware_${{ matrix.device }}_${{needs.resolve-version.outputs.immortalwrt_version}}_${{ env.FILE_DATE }}
+          path: |
+            ${{ env.FIRMWARE }}/immortalwrt-msm89xx-*-squashfs-gpt_both0.bin
+            ${{ env.FIRMWARE }}/immortalwrt-msm89xx-*-squashfs-boot.img
+            ${{ env.FIRMWARE }}/immortalwrt-msm89xx-*-squashfs-system.img
+            ${{ env.FIRMWARE }}/immortalwrt-msm89xx-*.manifest
+            ${{ env.FIRMWARE }}/immortalwrt-msm89xx-*-flash.sh
+            ${{ env.FIRMWARE }}/immortalwrt-msm89xx-*-firmware.zip
