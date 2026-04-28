@@ -1,4 +1,4 @@
-name: OpenWrt Builder
+name: ImmortalWrt Builder
 
 on:
   workflow_dispatch:
@@ -21,18 +21,21 @@ jobs:
   resolve-version:
     runs-on: ubuntu-22.04
     outputs:
-      openwrt_version: ${{ steps.resolve.outputs.version }}
+      immortalwrt_version: ${{ steps.resolve.outputs.version }}
     steps:
-    - name: Resolve latest stable OpenWrt 25.12.x tag
+    - name: Resolve latest stable ImmortalWrt 25.12.x tag
       id: resolve
       run: |
-        VERSION=$(git ls-remote --tags https://git.openwrt.org/openwrt/openwrt.git 'v25.12.*' \
-          | grep -oP 'v25\.12\.\d+$' | sort -V | tail -1)
+        VERSION=$(git ls-remote --refs --tags https://github.com/immortalwrt/immortalwrt \
+          | awk -F/ '{print $3}' \
+          | grep -E '^v25\.12\.[0-9]+(-rc[0-9]+)?$' \
+          | sort -V \
+          | tail -1)
         if [ -z "$VERSION" ]; then
-          echo "ERROR: Could not resolve a stable OpenWrt 25.12.x version"
+          echo "ERROR: Could not resolve a stable ImmortalWrt 25.12.x version"
           exit 1
         fi
-        echo "Resolved OpenWrt version: $VERSION"
+        echo "Resolved ImmortalWrt version: $VERSION"
         echo "version=$VERSION" >> $GITHUB_OUTPUT
 
   build:
@@ -60,22 +63,21 @@ jobs:
         sudo -E apt-get -qq clean
         sudo timedatectl set-timezone "$TZ"
 
-    - name: Clone OpenWrt source code
+    - name: Clone ImmortalWrt source code
       run: |
-        echo "Using OpenWrt ${{ needs.resolve-version.outputs.openwrt_version }}"
-        git clone https://git.openwrt.org/openwrt/openwrt.git openwrt
-        git -C openwrt checkout ${{ needs.resolve-version.outputs.openwrt_version }}
+        echo "Using ImmortalWrt ${{ needs.resolve-version.outputs.immortalwrt_version }}"
+        git clone --single-branch -b ${{ needs.resolve-version.outputs.immortalwrt_version }} --depth=1 https://github.com/immortalwrt/immortalwrt
 
     - name: Load msm89xx target and packages
       run: |
         chmod +x apply_patches.sh
-        ./apply_patches.sh openwrt
-        mv msm89xx openwrt/target/linux/msm89xx
-        mv packages openwrt/package/msm8916
+        ./apply_patches.sh immortalwrt
+        mv msm89xx immortalwrt/target/linux/msm89xx
+        mv packages immortalwrt/package/msm8916
 
     - name: Update and install feeds
       run: |
-        cd openwrt
+        cd immortalwrt
         rm -rf tmp
         ./scripts/feeds update -a
         ./scripts/feeds install -a
@@ -84,30 +86,30 @@ jobs:
       run: |
         DEVICE="${{ matrix.device }}"
         DIFFCONFIG="diffconfig_${DEVICE}"
-        [ -f "$DIFFCONFIG" ] && mv "$DIFFCONFIG" openwrt/.config
+        [ -f "$DIFFCONFIG" ] && mv "$DIFFCONFIG" immortalwrt/.config
 
     - name: Set up ccache
       uses: hendrikmuhs/ccache-action@v1
       with:
-        key: ${{ runner.os }}-ccache
+        key: ${{ runner.os }}-ccache-iwrt
         restore-keys: |
-          ${{ runner.os }}-ccache-
+          ${{ runner.os }}-ccache-iwrt-
 
-    - name: Cache OpenWrt build
+    - name: Cache immortalwrt build
       uses: actions/cache@v4
       with:
         path: |
-          openwrt/dl
-          openwrt/build_dir
-          openwrt/staging_dir
-        key: ${{ runner.os }}-openwrt
+          immortalwrt/dl
+          immortalwrt/build_dir
+          immortalwrt/staging_dir
+        key: ${{ runner.os }}-iwrt
         restore-keys: |
-          ${{ runner.os }}-openwrt-
+          ${{ runner.os }}-iwrt-
 
     - name: Download package
       id: package
       run: |
-        cd openwrt
+        cd immortalwrt
         make defconfig
         make download -j8
         find dl -size -1024c -exec rm -f {} \; || true
@@ -115,7 +117,7 @@ jobs:
     - name: Compile the firmware
       id: compile
       run: |
-        cd openwrt
+        cd immortalwrt
         echo -e "$(nproc) thread compile"
         make tools/ccache/compile
         make -j$(nproc) || make -j1 || make -j1 V=s
@@ -126,7 +128,7 @@ jobs:
       id: organize
       if: env.UPLOAD_FIRMWARE == 'true' && !cancelled()
       run: |
-        cd openwrt/bin/targets/*/*
+        cd immortalwrt/bin/targets/*/*
         rm -rf packages
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
         echo "status=success" >> $GITHUB_OUTPUT
@@ -135,11 +137,11 @@ jobs:
       uses: actions/upload-artifact@v4
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
-        name: openwrt_firmware_${{ matrix.device }}_${{needs.resolve-version.outputs.openwrt_version}}_${{ env.FILE_DATE }}
+        name: immortalwrt_firmware_${{ matrix.device }}_${{needs.resolve-version.outputs.immortalwrt_version}}_${{ env.FILE_DATE }}
         path: |
-          ${{ env.FIRMWARE }}/openwrt-msm89xx-*-squashfs-gpt_both0.bin
-          ${{ env.FIRMWARE }}/openwrt-msm89xx-*-squashfs-boot.img
-          ${{ env.FIRMWARE }}/openwrt-msm89xx-*-squashfs-system.img
-          ${{ env.FIRMWARE }}/openwrt-msm89xx-*.manifest
-          ${{ env.FIRMWARE }}/openwrt-msm89xx-*-flash.sh
-          ${{ env.FIRMWARE }}/openwrt-msm89xx-*-firmware.zip
+          ${{ env.FIRMWARE }}/immortalwrt-msm89xx-*-squashfs-gpt_both0.bin
+          ${{ env.FIRMWARE }}/immortalwrt-msm89xx-*-squashfs-boot.img
+          ${{ env.FIRMWARE }}/immortalwrt-msm89xx-*-squashfs-system.img
+          ${{ env.FIRMWARE }}/immortalwrt-msm89xx-*.manifest
+          ${{ env.FIRMWARE }}/immortalwrt-msm89xx-*-flash.sh
+          ${{ env.FIRMWARE }}/immortalwrt-msm89xx-*-firmware.zip
