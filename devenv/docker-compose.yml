@@ -2,10 +2,10 @@ services:
   chown-fix:
     image: alpine:latest
     command: >
-      sh -c "chown -R 1000:1000 /home/builder/openwrt/dl /home/builder/openwrt/bin"
+      sh -c "chown -R 1000:1000 /home/builder/immortalwrt/dl /home/builder/immortalwrt/bin"
     volumes:
-      - ../bin:/home/builder/openwrt/bin
-      - dl:/home/builder/openwrt/dl
+      - ../bin:/home/builder/immortalwrt/bin
+      - dl:/home/builder/immortalwrt/dl
     user: root
     restart: "no"
 
@@ -14,17 +14,17 @@ services:
       context: ..
       dockerfile: devenv/Dockerfile
       args:
-        OPENWRT_VERSION: ${OPENWRT_VERSION:-main}
-    container_name: openwrt-builder
-    working_dir: /home/builder/openwrt
+        IMMORTALWRT_VERSION: ${IMMORTALWRT_VERSION:-master}
+    container_name: immortalwrt-builder
+    working_dir: /home/builder/immortalwrt
     stdin_open: true
     tty: true
     volumes:
       - ..:/repo
-      - ../packages:/home/builder/openwrt/package/msm8916
-      - ../msm89xx:/home/builder/openwrt/target/linux/msm89xx
-      - ../bin:/home/builder/openwrt/bin
-      - dl:/home/builder/openwrt/dl
+      - ../packages:/home/builder/immortalwrt/package/msm8916
+      - ../msm89xx:/home/builder/immortalwrt/target/linux/msm89xx
+      - ../bin:/home/builder/immortalwrt/bin
+      - dl:/home/builder/immortalwrt/dl
     command: ["/bin/bash"]
     depends_on:
       chown-fix:
