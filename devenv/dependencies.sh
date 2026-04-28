@@ -1,4 +1,5 @@
 #!/bin/sh
+set -e
 export DEBIAN_FRONTEND=noninteractive
 
 # Install all dependencies for OpenWrt and lk2nd/qhypstub compilation

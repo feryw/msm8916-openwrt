@@ -15,7 +15,7 @@ on:
 
 env:
   UPLOAD_FIRMWARE: true
-  TZ: Europe/Madrid
+  TZ: Asia/Jakarta
 
 jobs:
   resolve-version:
@@ -86,12 +86,24 @@ jobs:
         DIFFCONFIG="diffconfig_${DEVICE}"
         [ -f "$DIFFCONFIG" ] && mv "$DIFFCONFIG" openwrt/.config
 
-    - name: Install and configure ccache
-      run: |
-        echo "/usr/lib/ccache" >> $GITHUB_PATH
-        echo "CCACHE_DIR=${{ github.workspace }}/openwrt/.ccache" >> $GITHUB_ENV
-        ccache -M 5G
-        ccache -s
+    - name: Set up ccache
+      uses: hendrikmuhs/ccache-action@v1
+      with:
+        key: ${{ runner.os }}-ccache
+        restore-keys: |
+          ${{ runner.os }}-ccache-
+
+    - name: Cache OpenWrt build
+      uses: actions/cache@v4
+      with:
+        path: |
+          openwrt/dl
+          openwrt/build_dir
+          openwrt/staging_dir
+          openwrt/toolchain
+        key: ${{ runner.os }}-openwrt
+        restore-keys: |
+          ${{ runner.os }}-openwrt-
 
     - name: Download package
       id: package
