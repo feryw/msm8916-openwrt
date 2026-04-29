@@ -89,9 +89,9 @@ jobs:
       - name: Set up ccache
         uses: hendrikmuhs/ccache-action@v1
         with:
-          key: ccache-iwrt-${{ matrix.arch }}
+          key: ccache-iwrt-${{ inputs.arch }}
           restore-keys: |
-            ccache-iwrt-${{ matrix.arch }}-
+            ccache-iwrt-${{ inputs.arch }}-
 
       - name: Cache immortalwrt dl (shared)
         uses: actions/cache@v4
@@ -108,9 +108,9 @@ jobs:
           path: |
             immortalwrt/build_dir
             immortalwrt/staging_dir
-          key: iwrt-build-${{ steps.resolve.outputs.version }}-${{ matrix.arch }}-${{ hashFiles('feeds.conf.default') }}
+          key: iwrt-build-${{ needs.resolve-version.outputs.immortalwrt_version }}-${{ inputs.arch }}-${{ hashFiles('immortalwrt/feeds.conf.default') }}
           restore-keys: |
-            iwrt-build-${{ steps.resolve.outputs.version }}-${{ matrix.arch }}-
+            iwrt-build-${{ needs.resolve-version.outputs.immortalwrt_version }}-${{ inputs.arch }}-
 
       - name: Cache tools + toolchain
         uses: actions/cache@v4
@@ -118,18 +118,18 @@ jobs:
           path: |
             immortalwrt/tools
             immortalwrt/toolchain*
-          key: iwrt-toolchain-${{ steps.resolve.outputs.version }}-${{ matrix.arch }}-${{ hashFiles('feeds.conf.default') }}
+          key: iwrt-toolchain-${{ needs.resolve-version.outputs.immortalwrt_version }}-${{ inputs.arch }}-${{ hashFiles('immortalwrt/feeds.conf.default') }}
           restore-keys: |
-            iwrt-toolchain-${{ steps.resolve.outputs.version }}-${{ matrix.arch }}-
+            iwrt-toolchain-${{ needs.resolve-version.outputs.immortalwrt_version }}-${{ inputs.arch }}-
 
       - name: Cache feeds
         uses: actions/cache@v4
         with:
           path: |
             immortalwrt/feeds
-          key: iwrt-feeds-${{ steps.resolve.outputs.version }}-${{ hashFiles('feeds.conf.default') }}
+          key: iwrt-feeds-${{ needs.resolve-version.outputs.immortalwrt_version }}-${{ hashFiles('immortalwrt/feeds.conf.default') }}
           restore-keys: |
-            iwrt-feeds-${{ steps.resolve.outputs.version }}-
+            iwrt-feeds-${{ needs.resolve-version.outputs.immortalwrt_version }}-
 
       - name: Update and install feeds
         run: |
@@ -140,7 +140,7 @@ jobs:
 
       - name: Load diffconfig
         run: |
-          DIFFCONFIG="diffconfig_${{ matrix.device }}_${{ matrix.arch }}"
+          DIFFCONFIG="diffconfig_${{ inputs.device }}_${{ inputs.arch }}"
           [ -f "$DIFFCONFIG" ] && mv "$DIFFCONFIG" immortalwrt/.config
 
       - name: Download package
@@ -174,7 +174,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: steps.organize.outputs.status == 'success' && !cancelled()
         with:
-          name: immortalwrt_firmware_${{ matrix.device }}_${{needs.resolve-version.outputs.immortalwrt_version}}_${{ env.FILE_DATE }}
+          name: immortalwrt_firmware_${{needs.resolve-version.outputs.immortalwrt_version}}_${{ inputs.device }}_${{ inputs.arch }}_${{ env.FILE_DATE }}
           path: |
             ${{ env.FIRMWARE }}/immortalwrt-msm89xx-*-squashfs-gpt_both0.bin
             ${{ env.FIRMWARE }}/immortalwrt-msm89xx-*-squashfs-boot.img
