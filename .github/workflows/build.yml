@@ -98,7 +98,7 @@ jobs:
         with:
           path: |
             immortalwrt/dl
-          key: iwrt-dl-${{ env.FILE_DATE }}
+          key: iwrt-dl-${{ hashFiles('immortalwrt/feeds.conf.default') }
           restore-keys: |
             iwrt-dl-
 
