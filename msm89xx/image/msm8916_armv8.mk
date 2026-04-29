@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0-only
 
-ifeq ($(SUBTARGET),msm8916)
+ifeq ($(SUBTARGET),msm8916_armv8)
 
 define Build/generate-squashfs-gpt
   chmod +x $(TOPDIR)/target/linux/$(BOARD)/image/generate_squashfs_gpt.sh
@@ -17,7 +17,7 @@ define Build/generate-firmware
   $(TOPDIR)/target/linux/$(BOARD)/image/generate_firmware.sh $@
 endef
 
-define Device/msm8916
+define Device/msm8916_armv8
   SOC := msm8916
   CMDLINE := "earlycon console=tty0 console=ttyMSM0,115200 root=/dev/mmcblk0p14 rootfstype=squashfs rootwait"
   FEATURES := squashfs
@@ -29,7 +29,7 @@ define Device/msm8916
 endef
 
 define Device/yiming-uz801v3
-  $(Device/msm8916)
+  $(Device/msm8916_armv8)
   DEVICE_VENDOR := YiMing
   DEVICE_MODEL := uz801v3
   FILESYSTEMS := squashfs
@@ -40,7 +40,7 @@ endef
 TARGET_DEVICES += yiming-uz801v3
 
 define Device/generic-uf02
-  $(Device/msm8916)
+  $(Device/msm8916_armv8)
   DEVICE_VENDOR := Generic
   DEVICE_MODEL := UF02 (250605 V0S)
   FILESYSTEMS := squashfs
