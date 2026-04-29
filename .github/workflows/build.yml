@@ -98,7 +98,7 @@ jobs:
         with:
           path: |
             immortalwrt/dl
-          key: iwrt-dl
+          key: iwrt-dl-${{ env.FILE_DATE }}
           restore-keys: |
             iwrt-dl-
 
