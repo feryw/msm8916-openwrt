@@ -1,4 +1,4 @@
-SUBTARGET:=msm8916
+SUBTARGET:=msm8916_armv8
 BOARDNAME:=Snapdragon 410 (msm8916) based boards (ARMv8)
 ARCH:=aarch64
 

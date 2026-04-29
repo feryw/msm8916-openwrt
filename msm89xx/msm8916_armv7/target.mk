@@ -1,4 +1,4 @@
-SUBTARGET:=msm8916v7
+SUBTARGET:=msm8916_armv7
 BOARDNAME:=Snapdragon 410 (msm8916) based boards (ARMv7)
 ARCH:=arm
 CPU_TYPE:=cortex-a7
