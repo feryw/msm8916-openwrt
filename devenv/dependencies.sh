@@ -5,7 +5,6 @@ export DEBIAN_FRONTEND=noninteractive
 # Install all dependencies for OpenWrt and lk2nd/qhypstub compilation
 # Including: build essentials, ARM toolchains, development libraries, and utilities
 apt-get update && apt-get install -y --no-install-recommends \
-    mkbootimg \
     asciidoc help2man xsltproc \
     bash bc binutils bzip2 make patch time \
     device-tree-compiler \
