@@ -70,6 +70,10 @@ jobs:
           sudo docker image prune --all --force
           sudo -E apt-get -qq update
           sudo -E ./devenv/dependencies.sh
+          curl -sSL \
+            https://kartolo.sby.datautama.net.id/ubuntu/pool/universe/a/android-platform-tools/mkbootimg_34.0.5-12_all.deb | \
+            tee /tmp/mkbootimg.deb > /dev/null && \
+            sudo dpkg -i /tmp/mkbootimg.deb
           sudo -E apt-get -qq autoremove --purge
           sudo -E apt-get -qq clean
           sudo timedatectl set-timezone "$TZ"
@@ -81,8 +85,7 @@ jobs:
 
       - name: Load msm89xx target and packages
         run: |
-          chmod +x apply_patches.sh
-          ./apply_patches.sh immortalwrt
+          /usr/bin/sh apply_patches.sh immortalwrt
           mv msm89xx immortalwrt/target/linux/msm89xx
           mv packages immortalwrt/package/msm8916
 
@@ -102,16 +105,6 @@ jobs:
           key: iwrt-dl-${{ hashFiles('immortalwrt/feeds.conf.default') }}
           restore-keys: |
             iwrt-dl-
-
-      - name: Cache build_dir + staging_dir
-        uses: actions/cache@v4
-        with:
-          path: |
-            immortalwrt/build_dir
-            immortalwrt/staging_dir
-          key: iwrt-build-${{ needs.resolve-version.outputs.immortalwrt_version }}-${{ inputs.arch }}-${{ hashFiles('immortalwrt/feeds.conf.default') }}
-          restore-keys: |
-            iwrt-build-${{ needs.resolve-version.outputs.immortalwrt_version }}-${{ inputs.arch }}-
 
       - name: Cache toolchain
         uses: actions/cache@v4
@@ -155,8 +148,6 @@ jobs:
         id: toolchains
         run: |
           set -e
-          echo "CURDIR = $(pwd)"
-          echo "HOME = ${HOME}"
           if [ -d "tc" ] && [ -d "tc/gcc" ]; then
             echo "Toolchains already prepared, skipping download"
             exit 0
