@@ -5,7 +5,7 @@
 # NOTE: Requires GNU sed (Linux only - runs in Docker or GHA).
 set -e
 
-OPENWRT_DIR="${1:-openwrt}"
+OPENWRT_DIR="${1:-immortalwrt}"
 ATH_MK="$OPENWRT_DIR/package/kernel/mac80211/ath.mk"
 
 if [ ! -f "$ATH_MK" ]; then

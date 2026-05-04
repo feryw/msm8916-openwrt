@@ -89,6 +89,7 @@ jobs:
       - name: Set up ccache
         uses: hendrikmuhs/ccache-action@v1
         with:
+          max-size: "5120MB"
           key: ccache-iwrt-${{ inputs.arch }}
           restore-keys: |
             ccache-iwrt-${{ inputs.arch }}-
