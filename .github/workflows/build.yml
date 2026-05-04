@@ -112,12 +112,11 @@ jobs:
           restore-keys: |
             iwrt-build-${{ needs.resolve-version.outputs.immortalwrt_version }}-${{ inputs.arch }}-
 
-      - name: Cache tools + toolchain
+      - name: Cache toolchain
         uses: actions/cache@v4
         with:
           path: |
-            immortalwrt/tools
-            immortalwrt/toolchain*
+            tc
           key: iwrt-toolchain-${{ needs.resolve-version.outputs.immortalwrt_version }}-${{ inputs.arch }}-${{ hashFiles('immortalwrt/feeds.conf.default') }}
           restore-keys: |
             iwrt-toolchain-${{ needs.resolve-version.outputs.immortalwrt_version }}-${{ inputs.arch }}-
@@ -151,6 +150,36 @@ jobs:
           make download -j8
           find dl -size -1024c -exec rm -f {} \; || true
 
+      - name: Download toolchains
+        id: toolchains
+        run: |
+          set -e
+          echo "CURDIR = $(pwd)"
+          echo "HOME = ${HOME}"
+          if [ -d "tc" ] && [ -d "tc/gcc" ]; then
+            echo "Toolchains already prepared, skipping download"
+            exit 0
+          fi
+          STRIPVER="${{ needs.resolve-version.outputs.immortalwrt_version }}"
+          STRIPVER="${STRIPVER#v}"
+          URL="https://downloads.immortalwrt.org/releases/${STRIPVER}/targets/sunxi/cortexa7/"
+          TC=$(curl -s "$URL" \
+            | grep -o 'href="[^"]*"' \
+            | sed 's/href="//;s/"//' \
+            | grep 'toolchain')
+          [ -z "$TC" ] && { echo "No toolchain found"; exit 1; }
+          wget -c "${URL}${TC}"
+          tar xvf "${TC}"
+          TC="${TC%.tar.zst}"
+          mv "${TC}" tc
+          GCC_PATH=$(find tc -type d -name "*gcc*" | head -n1)
+          if [ -n "$GCC_PATH" ]; then
+            mv "$GCC_PATH" tc/gcc
+          else
+            echo "gcc directory not found in toolchain"
+            exit 1
+          fi
+ 
       - name: Compile the firmware
         id: compile
         run: |
