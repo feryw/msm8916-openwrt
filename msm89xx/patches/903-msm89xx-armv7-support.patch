@@ -1,0 +1,43 @@
+Index: linux-6.12.79/arch/arm/boot/dts/qcom/Makefile
+===================================================================
+--- linux-6.12.79.orig/arch/arm/boot/dts/qcom/Makefile
++++ linux-6.12.79/arch/arm/boot/dts/qcom/Makefile
+@@ -35,6 +35,10 @@ dtb-$(CONFIG_ARCH_QCOM) += \
+ 	qcom-msm8916-samsung-e7.dtb \
+ 	qcom-msm8916-samsung-grandmax.dtb \
+ 	qcom-msm8916-samsung-serranove.dtb \
++	msm8916-generic-uf02.dtb \
++	msm8916-thwc-uf896.dtb \
++	msm8916-thwc-ufi001c.dtb \
++	msm8916-yiming-uz801v3.dtb \
+ 	qcom-msm8926-htc-memul.dtb \
+ 	qcom-msm8926-microsoft-superman-lte.dtb \
+ 	qcom-msm8926-microsoft-tesla.dtb \
+Index: linux-6.12.79/arch/arm/boot/dts/qcom/msm8916-generic-uf02.dts
+===================================================================
+--- /dev/null
++++ linux-6.12.79/arch/arm/boot/dts/qcom/msm8916-generic-uf02.dts
+@@ -0,0 +1,2 @@
++// SPDX-License-Identifier: GPL-2.0-only
++#include "arm64/qcom/msm8916-generic-uf02.dts"
+Index: linux-6.12.79/arch/arm/boot/dts/qcom/msm8916-thwc-uf896.dts
+===================================================================
+--- /dev/null
++++ linux-6.12.79/arch/arm/boot/dts/qcom/msm8916-thwc-uf896.dts
+@@ -0,0 +1,2 @@
++// SPDX-License-Identifier: GPL-2.0-only
++#include "arm64/qcom/msm8916-thwc-uf896.dts"
+Index: linux-6.12.79/arch/arm/boot/dts/qcom/msm8916-thwc-ufi001c.dts
+===================================================================
+--- /dev/null
++++ linux-6.12.79/arch/arm/boot/dts/qcom/msm8916-thwc-ufi001c.dts
+@@ -0,0 +1,2 @@
++// SPDX-License-Identifier: GPL-2.0-only
++#include "arm64/qcom/msm8916-thwc-ufi001c.dts"
+Index: linux-6.12.79/arch/arm/boot/dts/qcom/msm8916-yiming-uz801v3.dts
+===================================================================
+--- /dev/null
++++ linux-6.12.79/arch/arm/boot/dts/qcom/msm8916-yiming-uz801v3.dts
+@@ -0,0 +1,2 @@
++// SPDX-License-Identifier: GPL-2.0-only
++#include "arm64/qcom/msm8916-yiming-uz801v3.dts"
