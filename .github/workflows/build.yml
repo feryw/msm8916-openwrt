@@ -131,19 +131,6 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      - name: Load diffconfig
-        run: |
-          DIFFCONFIG="diffconfig_${{ inputs.device }}_${{ inputs.arch }}"
-          [ -f "$DIFFCONFIG" ] && mv "$DIFFCONFIG" immortalwrt/.config
-
-      - name: Download package
-        id: package
-        run: |
-          cd immortalwrt
-          make defconfig
-          make download -j8
-          find dl -size -1024c -exec rm -f {} \; || true
-
       - name: Download toolchains
         id: toolchains
         run: |
@@ -161,7 +148,7 @@ jobs:
             | grep 'toolchain')
           [ -z "$TC" ] && { echo "No toolchain found"; exit 1; }
           wget -c "${URL}${TC}"
-          tar xvf "${TC}"
+          tar xf "${TC}"
           TC="${TC%.tar.zst}"
           mv "${TC}" tc
           GCC_PATH=$(find tc -type d -name "*gcc*" | head -n1)
@@ -171,6 +158,19 @@ jobs:
             echo "gcc directory not found in toolchain"
             exit 1
           fi
+
+      - name: Load diffconfig
+        run: |
+          DIFFCONFIG="diffconfig_${{ inputs.device }}_${{ inputs.arch }}"
+          [ -f "$DIFFCONFIG" ] && mv "$DIFFCONFIG" immortalwrt/.config
+
+      - name: Download package
+        id: package
+        run: |
+          cd immortalwrt
+          make defconfig
+          make download -j8
+          find dl -size -1024c -exec rm -f {} \; || true
  
       - name: Compile the firmware
         id: compile
