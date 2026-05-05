@@ -22,14 +22,11 @@ on:
           - all
           - armv8
           - armv7
-      ssh:
-        description: 'Enable SSH debug session'
-        required: true
-        default: 'false'
-        type: choice
-        options:
-          - true
-          - false
+      debug_enabled:
+        type: boolean
+        description: 'Run the build with tmate debugging enabled'
+        required: false
+        default: false
 
 env:
   UPLOAD_FIRMWARE: true
@@ -181,9 +178,9 @@ jobs:
           find dl -size -1024c -exec rm -f {} \; || true
           
       - name: SSH debug
-        if: ${{ inputs.ssh == 'true' }}
         uses: mxschmitt/action-tmate@v3
-  
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+        
       - name: Compile the firmware
         id: compile
         run: |
