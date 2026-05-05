@@ -178,12 +178,13 @@ jobs:
           find dl -size -1024c -exec rm -f {} \; || true
           
       - name: SSH debug
-        uses: mxschmitt/action-tmate@v3
+        uses: owenthereal/action-upterm@v1
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
         
       - name: Compile the firmware
         id: compile
         run: |
+          /usr/bin/sh apply_patches.sh immortalwrt
           cd immortalwrt
           echo -e "$(nproc) thread compile"
           make -j$(nproc) || make -j1 || make -j1 V=s
