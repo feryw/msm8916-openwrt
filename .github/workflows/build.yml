@@ -17,11 +17,19 @@ on:
         description: 'Device architecture'
         required: false
         type: choice
-        default: all
+        default: armv7
         options:
           - all
           - armv8
           - armv7
+      ssh:
+        description: 'Enable SSH debug session'
+        required: true
+        default: 'false'
+        type: choice
+        options:
+          - true
+          - false
 
 env:
   UPLOAD_FIRMWARE: true
@@ -171,7 +179,11 @@ jobs:
           make defconfig
           make download -j$(nproc)
           find dl -size -1024c -exec rm -f {} \; || true
- 
+
+      - name: SSH connection to Actions
+        if: ${{ inputs.ssh == 'true' }}
+        uses: csexton/debugger-action@master
+  
       - name: Compile the firmware
         id: compile
         run: |
