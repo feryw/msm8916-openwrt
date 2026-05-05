@@ -180,9 +180,9 @@ jobs:
           make download -j$(nproc)
           find dl -size -1024c -exec rm -f {} \; || true
           
-      - name: SSH connection to Actions
-        uses: csexton/debugger-action@master
-        if: (github.event.inputs.ssh == 'true' && github.event.inputs.ssh  != 'false') || contains(github.event.action, 'ssh')
+      - name: SSH debug
+        if: ${{ inputs.ssh == 'true' }}
+        uses: mxschmitt/action-tmate@v3
   
       - name: Compile the firmware
         id: compile
